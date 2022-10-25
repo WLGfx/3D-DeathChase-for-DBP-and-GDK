@@ -1,0 +1,82 @@
+type _SOUNDS
+    heart as integer
+    fuel as integer
+    star as integer
+    tree as integer
+    music1 as integer
+    music2 as integer
+    current_music as integer
+endtype
+
+function SOUNDS_LOAD()
+    sounds.heart = free_sound()
+    Load Sound "media\healthhit.wav", sounds.heart
+    sounds.fuel = free_sound()
+    Load Sound "media\fuelhit.wav", sounds.fuel
+    sounds.star = free_sound()
+    Load Sound "media\starhit.wav", sounds.star
+    sounds.tree = free_sound()
+    Load Sound "media\bikehittree.wav", sounds.tree
+    
+    sounds.music1 = free_music()
+    Load Music "media\police-walking_on_the_moon.mid", sounds.music1
+    sounds.music2 = free_music()
+    Load Music "media\police-bring_on_the_night.mid", sounds.music2
+    
+    sounds.current_music = 0
+Endfunction
+
+function SOUNDS_UNLOAD()
+    Delete Sound sounds.heart
+    Delete Sound sounds.fuel
+    Delete Sound sounds.star
+    Delete Sound sounds.tree
+    
+    Delete Music sounds.music1
+    Delete Music sounds.music2
+Endfunction
+
+function SOUNDS_PLAY_SOUND(a)
+    select a
+        case 0 : Play Sound sounds.heart : endcase
+        case 1 : Play Sound sounds.fuel : endcase
+        case 2 : Play Sound sounds.star : endcase
+        case 3 : Play Sound sounds.tree : endcase
+    endselect
+Endfunction
+
+function SOUNDS_PLAY_MUSIC(a)
+    if sounds.current_music
+        Stop Music sounds.current_music
+    Endif
+    if a=0
+        Loop Music sounds.music1
+        sounds.current_music = sounds.music1
+    else
+        Loop Music sounds.music2
+        sounds.current_music = sounds.music2
+    Endif
+Endfunction
+
+function SOUNDS_STOP_MUSIC()
+    if sounds.current_music
+        Stop Music sounds.current_music
+        sounds.current_music = 0
+    Endif
+Endfunction
+
+function free_sound()
+    local c as integer
+    c=1
+    while Sound Exist( c )
+        inc c
+    Endwhile
+Endfunction c
+
+function free_music()
+    local c as integer
+    c=1
+    while Music Exist( c )
+        inc c
+    Endwhile
+Endfunction c

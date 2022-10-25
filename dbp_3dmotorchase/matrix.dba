@@ -1,0 +1,238 @@
+type _MATRIX
+    mtext       as integer  ` matrix texture
+    
+    matcw       as integer  ` vert count of cells
+    match       as integer
+    matwid      as integer  ` total size of matrix
+    mathgt      as integer
+    matxs       as integer  ` cell size
+    matys       as integer
+    mathalfx    as integer  ` half the total matrix size
+    mathalfy    as integer
+    skydomeobj  as integer  ` sky dome object ID
+    skydomeimg  as integer  ` sky dome image ID
+    waterobj    as integer  ` water object ID
+endtype
+
+function MATRIX_LOAD()
+    mat.skydomeobj = free_object()
+    Load Object "media\skydome.x", mat.skydomeobj
+    Set Object mat.skydomeobj, 1, 0, 1, 1, 0, 0, 0
+    MATRIX_MAKE_TEXTURE2()
+    MATRIX_MAKE_SKYDOME_TEXTURE(1024)
+    Texture Object mat.skydomeobj, mat.skydomeimg
+ENDFUNCTION
+
+function MATRIX_UNLOAD()
+    Delete Object mat.skydomeobj
+    Delete Image mat.skydomeimg
+    Delete Image mat.mtext
+ENDFUNCTION
+
+function MATRIX_INIT(w, h, ow, oh, trees, oct)
+    mat.matwid = ow
+    mat.mathgt = oh
+    mat.matxs = ow / w
+    mat.matys = oh / h
+    mat.matcw = w
+    mat.match = h
+    mat.mathalfx = ow / 2
+    mat.mathalfy = oh / 2
+    
+    hgt as float
+    x as integer
+    y as integer
+    t as integer
+    
+    `pn->Set(0.75, 0.01, 1.25, oct, 0);
+    NOISE SET PARAMS 0, 0.75, 0.01, 1.25, oct, 0
+    
+    Make Matrix 1, ow, oh, w, h
+    Prepare Matrix Texture 1, mat.mtext, 16, 16
+    Set Matrix Trim 1, 0.01, 0.01
+    
+    for x=0 to w
+        for y=0 to h
+            hgt = NOISE GET HEIGHT TILED(0,x,y,w,h)
+            hgt = (hgt+1.0)/2.0
+            hgt = hgt*400.0
+            Set matrix height 1,x,y,hgt
+            if x<w and y<h
+                t = hgt
+                if t<0 then t=0
+                if t>255 then t=255
+                Set Matrix Tile 1,x,y,t
+            endif
+        next
+    Next
+    
+    Set matrix 1,0,0,1,0,1,1,1
+    Position Matrix 1,-mat.mathalfx,0,-mat.mathalfy
+    MATRIX_CALC_NORMALS()
+    MATRIX_MAKE_WATER()
+    TREES_PLACE(5000)
+ENDFUNCTION
+
+function MATRIX_CLOSE()
+    Delete Matrix 1
+    TREES_UNPLACE()
+    MATRIX_UNMAKE_WATER()
+Endfunction
+
+function MATRIX_CALC_NORMALS()
+    local x as integer : local y as integer
+    local x1 as float : local y1 as float : local z1 as float
+    local x2 as float : local y2 as float : local z2 as float
+    local x3 as float : local y3 as float : local z3 as float
+    local normx as float : local normy as float : local normz as float
+    local norm as float
+    local xs as float : local ys as float
+    
+    xs = mat.matxs : ys = mat.matys
+    
+    for x=0 to mat.matcw
+        for y=0 to mat.match
+            x1=xs*x : x2=xs*(x+5) : x3=x1
+            z1=ys*y : z2=z1 : z3=ys*(y*5)
+            y1=Get Ground Height(1,x1,z1)
+            y2=Get Ground Height(1,x2,z2)
+            y3=Get Ground Height(1,x3,z3)
+            normx=(z1-z2)*(y3-y2)-(y1-y2)*(z3-z2)
+            normy=(x1-x2)*(z3-z2)-(z1-z2)*(x3-x2)
+            normz=(y1-y2)*(x3-x2)-(x1-x2)*(y3-y2)
+            norm=sqrt((normx*normx)+(normy*normy)+(normz*normz))
+            normx=normx/norm
+            normy=normy/norm
+            normz=normz/norm
+            Set Matrix Normal 1,x,y,sin(normx),cos(normy),cos(normz)
+        next
+    Next
+Endfunction
+
+function MATRIX_MAKE_WATER()
+    ` Another programmers cheating method
+    ` I'm creating a matrix and using the sky texture for the water ;-)
+    Make Matrix 2, mat.matwid, mat.mathgt, 128, 128
+    Prepare Matrix Texture 2, mat.skydomeimg, 1, 1
+    Fill Matrix 2, 0, 1
+    Position Matrix 2, -mat.mathalfx, 100, -mat.mathalfy
+    Set Matrix 2, 0, 1, 0, 1, 1, 1, 1
+    Ghost Matrix On 2, 4    ` iMode 4 gives best results
+Endfunction
+
+function MATRIX_UNMAKE_WATER()
+    Delete Matrix 2
+Endfunction
+
+function MATRIX_POSITION_WATER()
+    local x as integer
+    local z as integer
+    x = mat.matxs - bike.xpos - mat.mathalfx
+    z = mat.matys - bike.ypos - mat.mathalfy
+    Position Matrix 2, x, 100, z
+Endfunction
+
+` For some reason the bitmaps aren't working here
+function MATRIX_MAKE_TEXTURE2()
+    local tile_size as integer
+    local bm as integer
+    local dim grad(256) as integer
+    local x as integer
+    local y as integer
+    local xx as integer
+    local yy as integer
+    local col as integer
+    local r as integer
+    local rr as integer
+    local g as integer
+    local gg as integer
+    local b as integer
+    local bb as integer
+    
+    tile_size = 128
+    
+    ` load the gradient and store the colours in the local array
+    bm = free_bitmap()
+    Load Bitmap "media\grad1.bmp", bm
+    
+    Lock Pixels
+    for x=0 to 255
+        grad(x)=Point(x,0)
+    NEXT
+    Unlock Pixels
+    
+    Delete Bitmap bm
+    
+    ` create a tiled map of 256 textures for the matrix
+    bm = free_bitmap()
+    x=tile_size*16
+    Create Bitmap bm, x, x
+    
+    Lock Pixels
+    
+    for x=0 to 15
+        for y=0 to 15
+            ` get original RGB's
+            col=grad(x+(y*16))
+            
+            ` separate them
+            r=(col and 0xff0000)>>16
+            g=(col and 0x00ff00)>>8
+            b=(col and 0x0000ff)
+            
+            for xx=0 to tile_size-1
+                for yy=0 to tile_size-1
+                    ` distort the RGB values
+                    rr=r+rnd(32)-16
+                    gg=g+rnd(32)-16
+                    bb=b+rnd(32)-16
+                    
+                    if rr<0 then rr=0
+                    if rr>255 then rr=255
+                    
+                    if gg<0 then gg=0
+                    if gg>255 then gg=255
+                    
+                    if bb<0 then bb=0
+                    if bb>255 then bb=255
+                    
+                    Dot x*tile_size+xx,y*tile_size+yy,RGB(rr,gg,bb)
+                next
+            next
+        NEXT
+    NEXT
+    
+    Unlock Pixels
+    
+    mat.mtext = free_image()
+    Get Image mat.mtext, 0, 0, tile_size*16, tile_size*16
+    
+    Delete Bitmap bm
+ENDFUNCTION
+
+function MATRIX_MAKE_SKYDOME_TEXTURE(size)
+    ` make some clouds
+    local bm as integer
+    local x as integer
+    local y as integer
+    local c as integer
+    `local h as float
+    
+    NOISE SET PARAMS 0, 0.75, 0.01, 1.25, 8, 0
+    
+    mat.skydomeimg = free_image()
+    bm = free_bitmap()
+    Create Bitmap bm, size, size
+    
+    Lock Pixels
+    for x=0 to size-1
+        for y=0 to size-1
+            c = NOISE GET HEIGHT BYTE(0, x, y)
+            Dot x, y, RGB(c,c,255)
+        NEXT
+    NEXT
+    Unlock Pixels
+    
+    Get Image mat.skydomeimg, 0, 0, size-1, size-1
+    Delete Bitmap bm
+ENDFUNCTION

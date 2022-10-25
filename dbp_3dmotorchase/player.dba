@@ -1,0 +1,40 @@
+type _PLAYER
+    fuel        as float
+    health      as float
+    
+    fuel_count  as integer
+    stars_count as integer
+    health_count as integer
+endtype
+
+function PLAYER_INIT()
+    player.fuel         = 100
+    player.health       = 100
+    player.fuel_count   = 0
+    player.stars_count  = 0
+    player.health_count = 0
+    gg.game_score       = 0
+Endfunction
+
+function PLAYER_CLOSE()
+    ` probably don't need to do anything so just a null function
+Endfunction
+
+function PLAYER_HUD()
+    local sw as integer : local sh as integer
+    local x as integer : local y as integer
+    
+    sw=gg.screen_width
+    sh=gg.screen_height
+    x=sw-128
+    y=sh-64
+    
+    box x,y,sw,sh,0x80000000,0x80000000,0x80ff0000,0x800000ff
+    ink 0xffffff, 0xffffff
+    Text x+8,y+4,"SCORE:"+str$(int(gg.game_score))
+    Text x+8,y+22,"FU:"+str$(int(player.fuel))+"%"
+    Text x+70,y+22,"HE:"+str$(int(player.health))+"%"
+    Text x+8,y+40,"S:"+str$(player.stars_count)
+    Text x+48,y+40,"F:"+str$(player.fuel_count)
+    Text x+88,y+40,"H:"+str$(player.health_count)
+Endfunction

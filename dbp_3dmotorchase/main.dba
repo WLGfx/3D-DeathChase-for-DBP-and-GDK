@@ -1,0 +1,45 @@
+remstart
+
+    3D Motor Chase V1.01 (For Dark Basic Pro)
+    by CS Norwood - WLGfx
+    started 05 Dec 2011
+
+remend
+
+` initialise all the global vars and setup
+INIT_GLOBAL(800, 600)
+
+flag as integer
+
+do
+    MENU_INIT()
+    
+    flag = 0
+    
+    while flag = 0
+        flag = MENU_RUN()
+        Sync
+    ENDWHILE
+    
+    MENU_CLOSE()
+    
+    if flag = -1
+        GG_CLOSE()
+        end
+    ENDIF
+    
+    GG_INIT_GAME()
+    
+    flag=0
+    
+    while flag=0
+        if EscapeKey() then flag=-1
+        GG_RUN_GAME()
+        Sync
+    Endwhile
+    
+    GG_CLOSE_GAME()
+    
+LOOP
+
+END

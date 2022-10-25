@@ -1,0 +1,25 @@
+` Misc functions
+
+function free_object()
+    local c as integer
+    c = rnd(60000)+1
+    while object exist( c )
+        inc c
+    ENDWHILE
+ENDFUNCTION c
+
+function free_bitmap()
+    local c as integer
+    c = 1
+    while bitmap exist( c )
+        inc c
+    ENDWHILE
+ENDFUNCTION 10
+
+function free_image()
+    local c as integer
+    c = rnd(60000)+1
+    while image exist( c )
+        inc c
+    ENDWHILE
+ENDFUNCTION c

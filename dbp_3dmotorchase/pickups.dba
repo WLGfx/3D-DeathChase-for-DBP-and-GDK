@@ -1,0 +1,390 @@
+type _OBJ
+    obj as integer
+    x as integer
+    y as integer
+    z as integer
+endtype
+
+type _PICKUPS
+    star_img    as integer
+    fuel_img    as integer
+    health_img  as integer
+    
+    star_obj    as integer
+    fuel_obj    as integer
+    health_obj  as integer
+    
+    max         as integer
+endtype
+
+function PICKUPS_LOAD()
+    
+    
+    local size as integer
+    
+    ` load up the original objects and hide them for later
+
+    size = 4
+
+    pickups.fuel_img    = free_image()
+    pickups.star_img    = free_image()
+    pickups.health_img  = free_image()
+    
+    Load Image "media\gascan.dds",      pickups.fuel_img
+    Load Image "media\goldstar.dds",    pickups.star_img
+    Load Image "media\heart.dds",       pickups.health_img
+
+    pickups.fuel_obj        = free_object()
+    Make Object Plane       pickups.fuel_obj, size, size
+    Texture Object          pickups.fuel_obj, pickups.fuel_img
+    Set Object Transparency pickups.fuel_obj, 1
+    Set Object Cull         pickups.fuel_obj, 0
+    Hide Object             pickups.fuel_obj
+
+    pickups.health_obj      = free_object()
+    Make Object Plane       pickups.health_obj, size, size
+    Texture Object          pickups.health_obj, pickups.health_img
+    Set Object Transparency pickups.health_obj, 1
+    Set Object Cull         pickups.health_obj, 0
+    Hide Object             pickups.health_obj
+
+    pickups.star_obj        = free_image()
+    Make Object Plane       pickups.star_obj, size, size
+    Texture Object          pickups.star_obj, pickups.star_img
+    Set Object Transparency pickups.star_obj, 1
+    Set Object Cull         pickups.star_obj, 0
+    Hide Object             pickups.star_obj
+    
+    pickups.max             = 50
+    global dim stars(50)    as _OBJ
+    global dim fuel(50)     as _OBJ
+    global dim health(50)   as _OBJ
+Endfunction
+
+function PICKUPS_UNLOAD()
+    Delete Image    pickups.fuel_img
+    Delete Image    pickups.star_img
+    Delete Image    pickups.health_img
+    Delete Object   pickups.fuel_obj
+    Delete Object   pickups.star_obj
+    Delete Object   pickups.health_obj
+Endfunction
+
+function PICKUPS_INIT()
+    local a as integer
+    local m as integer
+    m = pickups.max
+    for a=0 to m
+        PICKUPS_INSTANCE(0, a)  ` 1=star
+        PICKUPS_INSTANCE(1, a)  ` 0=fuel
+        PICKUPS_INSTANCE(2, a)  ` 2=health
+    Next
+Endfunction
+
+function PICKUPS_INSTANCE(item, a)
+    local o as integer
+    local x as integer : local y as integer : local z as integer
+    repeat
+        x = rnd(mat.matwid)
+        z = rnd(mat.mathgt)
+        y = Get Ground Height(1,x,z)
+    Until y>100
+    o = free_object()
+    x=x-mat.mathalfx
+    y=y+3
+    z=z-mat.mathalfy
+    select item
+        case 1:
+            stars(a).obj = o
+            stars(a).x   = x
+            stars(a).y   = y
+            stars(a).z   = z
+            Instance Object o, pickups.star_obj
+            endcase
+        case 0:
+            fuel(a).obj  = o
+            fuel(a).x    = x
+            fuel(a).y    = y
+            fuel(a).z    = z
+            Instance Object o, pickups.fuel_obj
+            endcase
+        case 2:
+            health(a).obj= o
+            health(a).x  = x
+            health(a).y  = y
+            health(a).z  = z
+            Instance Object o, pickups.health_obj
+            endcase
+    endselect
+    Show Object o
+    Position Object o,x,y,z
+Endfunction
+
+function PICKUPS_CLOSE()
+    local a as integer
+    for a=0 to pickups.max
+        Delete Object fuel(a).obj
+        Delete Object stars(a).obj
+        Delete Object health(a).obj
+    Next
+Endfunction
+
+function PICKUPS_FACE_CAMERA()
+    local a as integer
+    local x as integer : local y as integer : local z as integer
+    x = Camera Position X()
+    y = Camera Position Y()
+    z = Camera Position Z()
+    for a=0 to pickups.max
+        Point Object fuel(a).obj,x,y,z
+        Point Object stars(a).obj,x,y,z
+        Point Object health(a).obj,x,y,z
+    Next
+Endfunction
+
+function PICKUPS_MOVE_LEFT()
+    local a as integer
+    for a=0 to pickups.max
+        PICKUPS_LEFT(0,a)
+        PICKUPS_LEFT(1,a)
+        PICKUPS_LEFT(2,a)
+    Next
+Endfunction
+
+function PICKUPS_LEFT(item,a)
+    local o as integer
+    local x as integer : local y as integer : local z as integer
+    select item
+        case 0:
+            o=fuel(a).obj : x=fuel(a).x
+            y=fuel(a).y : z=fuel(a).z
+            endcase
+        case 1:
+            o=stars(a).obj : x=stars(a).x
+            y=stars(a).y : z=stars(a).z
+            endcase
+        case 2:
+            o=health(a).obj : x=health(a).x
+            y=health(a).y : z=health(a).z
+            endcase
+    endselect
+    x=x-mat.matxs
+    if x < -mat.mathalfx then x=x+mat.matwid
+    Position Object o,x,y,z
+    select item
+        case 0: fuel(a).x=x : endcase
+        case 1: stars(a).x=x : endcase
+        case 2: health(a).x=x : endcase
+    endselect
+Endfunction
+
+function PICKUPS_MOVE_RIGHT()
+    local a as integer
+    for a=0 to pickups.max
+        PICKUPS_RIGHT(0,a)
+        PICKUPS_RIGHT(1,a)
+        PICKUPS_RIGHT(2,a)
+    Next
+Endfunction
+
+function PICKUPS_RIGHT(item,a)
+    local o as integer
+    local x as integer : local y as integer : local z as integer
+    select item
+        case 0:
+            o=fuel(a).obj : x=fuel(a).x
+            y=fuel(a).y : z=fuel(a).z
+            endcase
+        case 1:
+            o=stars(a).obj : x=stars(a).x
+            y=stars(a).y : z=stars(a).z
+            endcase
+        case 2:
+            o=health(a).obj : x=health(a).x
+            y=health(a).y : z=health(a).z
+            endcase
+    endselect
+    x=x+mat.matxs
+    if x > mat.mathalfx then x=x-mat.matwid
+    Position Object o,x,y,z
+    select item
+        case 0: fuel(a).x=x : endcase
+        case 1: stars(a).x=x : endcase
+        case 2: health(a).x=x : endcase
+    endselect
+Endfunction
+
+function PICKUPS_MOVE_UP()
+    local a as integer
+    for a=0 to pickups.max
+        PICKUPS_UP(0,a)
+        PICKUPS_UP(1,a)
+        PICKUPS_UP(2,a)
+    Next
+Endfunction
+
+function PICKUPS_UP(item,a)
+    local o as integer
+    local x as integer : local y as integer : local z as integer
+    select item
+        case 0:
+            o=fuel(a).obj : x=fuel(a).x
+            y=fuel(a).y : z=fuel(a).z
+            endcase
+        case 1:
+            o=stars(a).obj : x=stars(a).x
+            y=stars(a).y : z=stars(a).z
+            endcase
+        case 2:
+            o=health(a).obj : x=health(a).x
+            y=health(a).y : z=health(a).z
+            endcase
+    endselect
+    z=z+mat.matys
+    if z > mat.mathalfy then z=z-mat.mathgt
+    Position Object o,x,y,z
+    select item
+        case 0: fuel(a).z=z : endcase
+        case 1: stars(a).z=z : endcase
+        case 2: health(a).z=z : endcase
+    endselect
+Endfunction
+
+function PICKUPS_MOVE_DOWN()
+    local a as integer
+    for a=0 to pickups.max
+        PICKUPS_DOWN(0,a)
+        PICKUPS_DOWN(1,a)
+        PICKUPS_DOWN(2,a)
+    Next
+Endfunction
+
+function PICKUPS_DOWN(item,a)
+    local o as integer
+    local x as integer : local y as integer : local z as integer
+    select item
+        case 0:
+            o=fuel(a).obj : x=fuel(a).x
+            y=fuel(a).y : z=fuel(a).z
+            endcase
+        case 1:
+            o=stars(a).obj : x=stars(a).x
+            y=stars(a).y : z=stars(a).z
+            endcase
+        case 2:
+            o=health(a).obj : x=health(a).x
+            y=health(a).y : z=health(a).z
+            endcase
+    endselect
+    z=z-mat.matys
+    if z < -mat.mathalfy then z=z+mat.mathgt
+    Position Object o,x,y,z
+    select item
+        case 0: fuel(a).z=z : endcase
+        case 1: stars(a).z=z : endcase
+        case 2: health(a).z=z : endcase
+    endselect
+Endfunction
+
+` A complete re-write cos I can't use pointers as in C
+function PICKUPS_COLLISION()
+    local a as integer
+    
+    a=PICKUPS_STAR_COLLISION()
+    if a<>-1
+        inc player.stars_count
+        Delete Object stars(a).obj
+        PICKUPS_INSTANCE(1,a)
+        gg.game_score = gg.game_score + 100
+        SOUNDS_PLAY_SOUND(2)
+    endif
+    
+    a=PICKUPS_FUEL_COLLISION()
+    if a<>-1
+        inc player.fuel_count
+        Delete Object fuel(a).obj
+        PICKUPS_INSTANCE(0,a)
+        player.fuel = player.fuel + 35
+        if player.fuel > 100 then player.fuel = 100
+        SOUNDS_PLAY_SOUND(1)
+    endif
+    
+    a=PICKUPS_HEALTH_COLLISION()
+    if a<>-1
+        inc player.health_count
+        Delete Object health(a).obj
+        PICKUPS_INSTANCE(2,a)
+        player.health = player.health + 35
+        if player.health > 100 then player.health = 100
+        SOUNDS_PLAY_SOUND(0)
+    Endif
+Endfunction
+
+function PICKUPS_STAR_COLLISION()
+    local bx as integer : local by as integer
+    local cu as integer : local di as integer
+    local xd as integer : local yd as integer
+    local ma as integer : local a as integer : local aa as integer
+    
+    bx = bike.xpos : by = bike.ypos
+    
+    cu=80000000
+    ma=pickups.max
+    
+    for a=0 to ma
+        xd = bx-stars(a).x
+        yd = by-stars(a).z
+        di = (xd*xd)+(yd*yd)
+        if di<cu
+            cu=di : aa=a
+        Endif
+    Next
+    
+    if sqrt(cu)>3 then aa=-1
+Endfunction aa
+
+function PICKUPS_FUEL_COLLISION()
+    local bx as integer : local by as integer
+    local cu as integer : local di as integer
+    local xd as integer : local yd as integer
+    local ma as integer : local a as integer : local aa as integer
+    
+    bx = bike.xpos : by = bike.ypos
+    
+    cu=80000000
+    ma=pickups.max
+    
+    for a=0 to ma
+        xd = bx-fuel(a).x
+        yd = by-fuel(a).z
+        di = (xd*xd)+(yd*yd)
+        if di<cu
+            cu=di : aa=a
+        Endif
+    Next
+    
+    if sqrt(cu)>3 then aa=-1
+Endfunction aa
+
+function PICKUPS_HEALTH_COLLISION()
+    local bx as integer : local by as integer
+    local cu as integer : local di as integer
+    local xd as integer : local yd as integer
+    local ma as integer : local a as integer : local aa as integer
+    
+    bx = bike.xpos : by = bike.ypos
+    
+    cu=80000000
+    ma=pickups.max
+    
+    for a=0 to ma
+        xd = bx-health(a).x
+        yd = by-health(a).z
+        di = (xd*xd)+(yd*yd)
+        if di<cu
+            cu=di : aa=a
+        Endif
+    Next
+    
+    if sqrt(cu)>3 then aa=-1
+Endfunction aa

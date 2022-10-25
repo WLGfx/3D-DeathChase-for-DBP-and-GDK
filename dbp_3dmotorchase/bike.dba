@@ -1,0 +1,146 @@
+type _BIKE
+    obj     as integer
+    
+    xpos    as float
+    ypos    as float
+    angle   as float
+    turnspd as float
+    speed   as float
+    height  as float
+    
+    `game_timer as integer
+endtype
+
+function BIKE_LOAD()
+    bike.obj = free_object()
+    Load Object "media\superbikeoptsmall.x", bike.obj
+Endfunction
+
+function BIKE_UNLOAD()
+    Delete Object bike.obj
+Endfunction
+
+function BIKE_INIT_ALL()
+    bike.xpos=0
+    bike.ypos=0
+    bike.angle=0
+    bike.turnspd=0
+    bike.speed=level.bike_speed
+    bike.height=Get Ground Height(1,mat.mathalfx+bike.xpos,mat.mathalfy+bike.ypos)
+    gg.game_score=0
+    `player.health=100
+Endfunction
+
+function BIKE_TURN()
+    local ts as float
+    ts = bike.turnspd
+    
+    if ts < 0
+        ts = ts + 0.2
+    else
+        if ts > 0
+            ts = ts - 0.2
+        Endif
+    endif
+    
+    if LeftKey()
+        ts = ts - 0.4
+        if ts < -4
+            ts = -4
+        endif
+    Endif
+    if RightKey()
+        ts = ts + 0.4
+        if ts > 4
+            ts = 4
+        endif
+    Endif
+    
+    if ts >= -0.2 and ts <= 0.2
+        ts = 0
+    Endif
+    
+    bike.angle = wrapvalue( bike.angle + ts )
+    YRotate Object bike.obj, bike.angle
+    
+    bike.turnspd = ts
+Endfunction
+
+function BIKE_UPDATE()
+    h1 as float : h2 as float
+    x1 as float : y1 as float : z1 as float
+    bx as float : by as float
+    hx as integer : hy as integer
+    
+    bx = bike.xpos : by = bike.ypos
+    hx = mat.mathalfx : hy = mat.mathalfy
+    
+    x1=bx+(sin(bike.angle)*6)+mat.mathalfx
+    y1=by+(cos(bike.angle)*6)+mat.mathalfy
+    h1=Get Ground Height(1,x1,y1)
+    h2=Get Ground Height(1,bx+hx,by+hy)
+    
+    XRotate Object bike.obj, atan(h2-h1)/4.0
+    
+    x1=bx : z1 = by
+    y1=Get Ground Height(1,x1+hx,z1+hy)
+    bike.height = y1
+    Position Object bike.obj, x1, y1+0.25, z1
+    
+    Position Object mat.skydomeobj,x1,0,z1  ` thrown in here SKYDOME
+    
+    Position Camera x1,y1,z1
+    Set Camera To Object Orientation bike.obj
+    YRotate Camera Camera Angle Y() - (bike.turnspd*4)
+    XRotate Camera Camera Angle X() + 30
+    Move Camera -10
+    XRotate Camera Camera Angle X() - 25
+    
+    Position Light 1,x1,y1+20,z1
+    Set Light To Object Orientation 1,bike.obj
+Endfunction
+
+function BIKE_MOVE()
+    bx as float : by as float
+    hx as integer : hy as integer
+    xs as integer : ys as integer
+    ang as float : speed as float
+    
+    bx = bike.xpos : by = bike.ypos
+    hx = mat.mathalfx : hy = mat.mathalfy
+    xs = mat.matxs : ys = mat.matys
+    ang = bike.angle : speed = bike.speed
+    
+    bx = bx + sin(ang) * speed
+    by = by + cos(ang) * speed
+    
+    if bx < 0
+        bx = bx + xs : flag = 1
+        Shift Matrix Right 1
+        TREES_RIGHT()
+        PICKUPS_MOVE_RIGHT()
+    Endif
+    if bx >= xs
+        bx = bx - xs : flag = 1
+        Shift Matrix Left 1
+        TREES_LEFT()
+        PICKUPS_MOVE_LEFT()
+    Endif
+    if by < 0
+        by = by + ys : flag = 1
+        Shift Matrix Up 1
+        TREES_UP()
+        PICKUPS_MOVE_UP()
+    Endif
+    if by >= ys
+        by = by - ys : flag = 1
+        Shift Matrix Down 1
+        TREES_DOWN()
+        PICKUPS_MOVE_DOWN()
+    Endif
+    
+    bike.xpos = bx : bike.ypos = by
+    if flag
+        Update Matrix 1
+    Endif
+Endfunction

@@ -1,0 +1,213 @@
+type _TREEXY
+    o as integer
+    x as integer
+    y as integer
+    z as integer
+endtype
+
+type _TREEARRAY
+    obj as integer
+    img as integer
+endtype
+
+function TREES_LOAD()
+    global dim treeID(10) as _TREEARRAY ` original trees (hidden)
+    global dim trees(10000) as _TREEXY  ` main tree array
+    global tree_coll as integer         ` collision countdown
+    global tree_count as integer        ` number of trees on map
+    
+    local a as integer
+    local t as integer
+    local i as integer
+    local s as string
+    
+    t = free_object()
+    Load Object "media\treebillboard.x", t
+    
+    restore TREE_FILES
+    
+    for a=0 to 9
+        treeID(a).img = free_image()
+        treeID(a).obj = free_object()
+        read s
+        Load Image s, treeID(a).img
+        Clone Object treeID(a).obj, t
+        Texture Object treeID(a).obj, treeID(a).img
+        Set Object Transparency treeID(a).obj, 6
+        Hide Object treeID(a).obj
+    NEXT
+    
+    Delete Object t
+    tree_coll = 0
+ENDFUNCTION
+
+TREE_FILES:
+data "media\\tree1.dds",    "media\\tree2.dds"
+data "media\\tree3.dds",    "media\\tree4.dds"
+data "media\\tree5.dds",    "media\\tree6.dds"
+data "media\\tree7.dds",    "media\\tree8.dds"
+data "media\\tree9.dds",    "media\\tree10.dds"
+
+function TREES_UNLOAD()
+    local a as integer
+    TREES_UNPLACE()
+    for a=0 to 9
+        Delete Object treeID(a).obj
+        Delete Image treeID(a).img
+    NEXT
+    tree_count = 0
+ENDFUNCTION
+
+function TREES_PLACE(num)
+    a as integer : o as integer : t as integer
+    x as integer : y as integer : z as integer
+    mw as integer : mh as integer
+    mhx as integer : mhy as integer
+    
+    mw = mat.matwid : mh = mat.mathgt
+    mhx = mat.mathalfx : mhy = mat.mathalfy
+    tree_count = num
+    
+    for a=0 to num
+        repeat
+            ` make sure tree above water
+            x=rnd(mw) : z=rnd(mh)
+            y=Get Ground Height(1,x,z)
+        Until y>100
+        o=free_object()
+        x=x-mhx : z=z-mhy
+        trees(a).o=o
+        trees(a).x=x
+        trees(a).y=y
+        trees(a).z=z
+        t=(y-100)/10
+        if t>9 then t=9
+        Instance Object o, treeID(t).obj
+        Position Object o, x, y, z
+        YRotate Object o, rnd(360)
+        Show Object o
+    Next
+ENDFUNCTION
+
+function TREES_UNPLACE()
+    a as integer
+    for a=0 to tree_count
+        Delete Object trees(a).o
+    Next
+    tree_count=0
+ENDFUNCTION
+
+function TREES_FIND_CLOSEST()
+    local count as integer
+    local cdist as integer : local dist as integer
+    local xd as integer : local yd as integer
+    local bx as integer : local by as integer
+    
+    bx = bike.xpos : by = bike.ypos
+    cdist=8000000
+    count = tree_count
+    
+    while count >= 0
+        xd=bx - trees(count).x
+        yd=by - trees(count).z
+        
+        dist=(xd*xd)+(yd*yd)
+        
+        if dist<cdist
+            cdist=dist
+        Endif
+        
+        dec count
+    Endwhile
+Endfunction cdist
+
+function TREES_CHECK_COLLISION()
+    ret as integer
+    if sqrt(TREES_FIND_CLOSEST()) < 2
+        tree_coll=3
+        ` spin bike out of control after collision
+        if bike.turnspd<0
+            bike.turnspd=4
+        else
+            if bike.turnspd>0
+                bike.turnspd=-4
+            else 
+                if rnd(1)
+                    bike.turnspd=4
+                else
+                    bike.turnspd=-4
+                endif
+            endif
+        endif
+        gg.main_colour=0xff0000
+        ret=1
+    else
+        ret=0
+    Endif
+    
+    Fog Color gg.main_colour
+    Color Backdrop gg.main_colour
+    
+    if tree_coll
+        dec tree_coll
+        if tree_coll=0
+            gg.main_colour = 0x000000
+        endif
+    Endif
+Endfunction ret
+
+function TREES_LEFT()
+    local a as integer
+    local x as integer
+    for a=0 to tree_count
+        x = trees(a).x
+        x = x - mat.matxs
+        if x < -mat.mathalfx
+            x = x + mat.matwid
+        Endif
+        trees(a).x = x
+        Position Object trees(a).o, x, trees(a).y, trees(a).z
+    Next
+Endfunction
+
+function TREES_RIGHT()
+    local a as integer
+    local x as integer
+    for a=0 to tree_count
+        x = trees(a).x
+        x = x + mat.matxs
+        if x > mat.mathalfx
+            x = x - mat.matwid
+        Endif
+        trees(a).x = x
+        Position Object trees(a).o, x, trees(a).y, trees(a).z
+    Next
+Endfunction
+
+function TREES_UP()
+    local a as integer
+    local z as integer
+    for a=0 to tree_count
+        z = trees(a).z
+        z = z + mat.matys
+        if z > mat.mathalfy
+            z = z - mat.mathgt
+        Endif
+        trees(a).z=z
+        Position Object trees(a).o, trees(a).x, trees(a).y, z
+    next
+Endfunction
+
+function TREES_DOWN()
+    local a as integer
+    local z as integer
+    for a=0 to tree_count
+        z = trees(a).z
+        z = z - mat.matys
+        if z < -mat.mathalfy
+            z = z + mat.mathgt
+        Endif
+        trees(a).z = z
+        Position Object trees(a).o, trees(a).x, trees(a).y, z
+    Next
+Endfunction

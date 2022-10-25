@@ -1,0 +1,199 @@
+type _GG
+    screen_width    as integer
+    screen_height   as integer
+    main_colour     as integer
+    
+    game_score      as float
+    game_over       as integer
+    game_timer      as dword
+endtype
+
+type _LEVEL
+    bike_speed      as integer
+    tree_count      as integer
+    octaves         as integer
+    level           as integer
+endtype
+
+function INIT_GLOBAL(sw, sh)
+    ` setup the main global variables
+    global gg       as _GG
+    global menu     as _MENU
+    global level    as _LEVEL
+    global mat      as _MATRIX
+    global bike     as _BIKE
+    global pickups  as _PICKUPS
+    global player   as _PLAYER
+    global sounds   as _SOUNDS
+
+    GG_INIT_SCREEN(sw, sh, 0x000000)
+    TREES_LOAD()
+    MATRIX_LOAD()
+    BIKE_LOAD()
+    PICKUPS_LOAD()
+    SOUNDS_LOAD()
+ENDFUNCTION
+
+function GG_CLOSE()
+    ` try to free all resources (good luck)
+    TREES_UNLOAD()
+    MATRIX_UNLOAD()
+    BIKE_UNLOAD()
+    PICKUPS_UNLOAD()
+    SOUNDS_UNLOAD()
+ENDFUNCTION
+
+function GG_INIT_SCREEN(sw, sh, colour)
+    // do some of my extra stuff
+    //InitCommonControls();
+
+    // setup the screen and stuff
+    Set Bitmap Format 21
+    Sync On
+    Sync Rate 60
+    Set Display Mode sw, sh, 32
+    Sync
+    
+    disable escapekey
+
+    // Tell user I'm busy loading up defaults
+    local intro$ = "Initialising all Game data"
+    Text sh / 2, ( sw / 2 )-( Text Width( intro$ ) / 2 ), intro$
+    Sync
+
+    gg.screen_width = sw
+    gg.screen_height = sh
+    
+    //dbSetWindowOff();
+    
+    AutoCam Off
+    Position Camera 0,200,0
+    Point Camera 0,0,500
+    Make Light 1
+    Position Light 1, 0, 200, 0 
+    Set Light Range 1, 2000
+    
+    //dbSetSpotLight(1, 0, 45);
+    
+    Color Light 1, 0xffffff
+    Hide Light 0
+    Set Ambient Light 20
+    Color Light 0,0x800000
+    Fog On
+    Fog Distance 300
+    Fog Color colour
+    Set Normalization On
+    Color Backdrop colour
+    Set Camera Range 1,300
+
+    // This changes when player hits a tree
+    gg.main_colour = colour
+    
+    // I think I'm done with the main stuff
+ENDFUNCTION
+
+function GG_DISPLAY_FPS()
+    local s as string
+    s = "FPS: "
+    s = s + str$( Screen FPS() )
+    Text 0,0,s
+ENDFUNCTION
+
+function GG_INIT_GAME()
+    // start the music here instead
+    SOUNDS_PLAY_MUSIC(1)
+
+    // initialise the level to the settings selected
+    MATRIX_INIT(128, 128, 2048, 2048, level.tree_count, level.octaves)
+    BIKE_INIT_ALL()
+    PICKUPS_INIT()
+    PLAYER_INIT()
+
+    // the game over flag
+    gg.game_over = 0;
+    
+    // Set games view and fog distance
+    Set Camera Range 1,500
+    Fog Distance 500
+
+    // altering the main fog and background colour
+    gg.main_colour = 0x000000;
+    level.level = flag;        // return value from menu selection
+    gg.game_timer = Timer()
+    gg.game_score = 0
+    bike.speed = level.bike_speed
+ENDFUNCTION
+
+function GG_CLOSE_GAME()
+    MATRIX_CLOSE()
+    PICKUPS_CLOSE()
+    SOUNDS_STOP_MUSIC()
+ENDFUNCTION
+
+function GG_RUN_GAME()
+    local curr_time as dword : local counter as dword
+    local player_damage as float
+    
+    curr_time = gg.game_timer
+    gg.game_timer = Timer()
+    
+    ` a - (n * int(a/n))
+    counter = gg.game_timer - curr_time
+    gg.game_timer = gg.game_timer - ( counter - (50*int(counter/50)) )
+    `gg.game_timer = gg.game_timer - ( counter MOD 50 ) ` CRAP didn't work
+    
+    player_damage = 0   ` damage taken during timer loop
+    tree_hit = 0        ` flag set it tree hit (play sound)
+    
+    `Text 0,0,str$(counter)
+    
+    if gg.game_over=0
+        ` TIMER LOOP HERE
+        while counter >= 50
+            ` Bike collision in timer loop
+            if TREES_CHECK_COLLISION()
+                player_damage = player_damage + 5
+                tree_hit = 1
+            else
+                ` only move if not collided
+                BIKE_TURN()
+            Endif
+            if bike.height<100
+                player_damage = player_damage + 0.75
+            Endif
+            
+            ` Pickups collision in timer loop
+            PICKUPS_COLLISION()
+            
+            BIKE_MOVE()
+            
+            gg.game_score = gg.game_score + 0.2
+            player.fuel = player.fuel - 0.025
+            counter = counter - 50
+        Endwhile
+        
+        player.health = player.health - player_damage
+        if player.health<0
+            player.health=0
+            gg.game_over=1
+        endif
+        if player.fuel<=0 then gg.game_over=1
+        
+        if tree_hit then SOUNDS_PLAY_SOUND(3)
+        
+        BIKE_UPDATE()
+        PICKUPS_FACE_CAMERA()
+        MATRIX_POSITION_WATER()
+        PLAYER_HUD()
+        GG_DISPLAY_FPS()
+    else
+        GG_GAME_OVER()
+    Endif
+ENDFUNCTION
+
+function GG_GAME_OVER()
+    YRotate Camera WrapValue( camera Angle Y() + 2 )
+    local s$ = "GAME-OVER (Esc/Menu)"
+    Text (gg.screen_width / 2) - (text width(s$) / 2), gg.screen_height / 2, s$
+    PLAYER_HUD()
+Endfunction

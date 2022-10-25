@@ -1,0 +1,139 @@
+type _MENU
+    cam_pos     as float
+    
+    obj         as integer
+    img         as integer
+    
+    ax          as float
+    ay          as float
+    az          as float
+    
+    ix          as float
+    iy          as float
+    iz          as float
+endtype
+
+function MENU_INIT()
+    SOUNDS_PLAY_MUSIC(0)
+    
+    // setup map for background display on the menu
+    MATRIX_INIT(128, 128, 2048, 2048, 5000, 6)
+
+    // setup some vars
+    menu.cam_pos = 0.0
+
+    menu.ax = 0
+    menu.ay = 0
+    menu.az = 0
+    menu.ix = 1.5
+    menu.iy = 1.7
+    menu.iz = 2.1
+
+    Set Camera Range 1,500
+    Fog Distance 500
+    Fog Color 0x000040
+    Color Backdrop 0x000040
+
+    menu.img = free_image()
+    Load Image "media\mainmenu.dds", menu.img, 6
+    menu.obj = free_object()
+    Make Object Plane menu.obj, 8, 6
+    Texture Object menu.obj, menu.img
+    Set Object Transparency menu.obj, 1
+ENDFUNCTION
+
+function MENU_CLOSE()
+    MATRIX_CLOSE()
+
+    Delete Object menu.obj
+    Delete Image menu.img
+
+    SOUNDS_STOP_MUSIC()
+ENDFUNCTION
+
+function MENU_RUN()
+    x   as float
+    y   as float
+    z   as float
+    x2  as float
+    y2  as float
+    z2  as float
+    ret as integer
+
+    x = 0
+    z = 0
+    y = Get Ground Height(1,x+mat.mathalfx,z+mat.mathalfy)+50
+    
+    Position Camera x, y, z
+    Rotate Camera 30, 0, 0
+    YRotate Camera menu.cam_pos
+
+    menu.cam_pos = WrapValue( menu.cam_pos + 0.5 )
+
+    Position Object menu.obj, x, y, z
+    Set Object To Camera Orientation menu.obj
+    Move Object menu.obj, 7
+    x2 = Object Position X( menu.obj ) ` for bikes pos
+    y2 = Object Position Y( menu.obj )
+    z2 = Object Position Z( menu.obj )
+    Move Object menu.obj, -2
+    Point Object menu.obj, x, y, z
+
+    Position Light 1, x, y, z
+
+    Position Object bike.obj, x2, y2, z2
+
+    x = WrapValue( Object Angle X( menu.obj ) + Sin( menu.ax ) * 10 )
+    y = WrapValue( Object Angle Y( menu.obj ) + Sin( menu.ay ) * 10 )
+    z = WrapValue( Object Angle Z( menu.obj ) + Sin( menu.az ) * 10 )
+
+    Rotate Object menu.obj, x, y, z
+
+    menu.ax = WrapValue( menu.ax + menu.ix )
+    menu.ay = WrapValue( menu.ay + menu.iy )
+    menu.az = WrapValue( menu.az + menu.iz )
+    
+    Text 0,0,"Use Left/Right Cursor Keys, Escape quits Game and Menu"
+
+    ret = 0
+    
+    if ( KeyState(2) )    // key 1
+        // set level 1
+        level.bike_speed = 2
+        level.octaves = 3
+        level.tree_count = 4000
+        ret = 1
+    endif
+    if ( KeyState(3) )    // key 2
+        // set level 2
+        level.bike_speed = 2.5
+        level.octaves = 4
+        level.tree_count = 5000
+        ret = 2
+    endif
+    if ( KeyState(4) )    // key 3
+        // set level 3
+        level.bike_speed = 3
+        level.octaves = 5
+        level.tree_count = 6000
+        ret = 3
+    endif
+    if ( KeyState(5) )    // key 4
+        // set level 4
+        level.bike_speed = 3.5
+        level.octaves = 5
+        level.tree_count = 7000
+        ret = 4
+    endif
+    if ( KeyState(6) )    // key 5
+        // set level 5
+        level.bike_speed = 4
+        level.octaves = 6
+        level.tree_count = 8000
+        ret = 5
+    endif
+    if ( EscapeKey() )    // ESCAPE key
+        ret = -1
+    endif
+
+ENDFUNCTION ret
